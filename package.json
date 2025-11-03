@@ -1,0 +1,91 @@
+{
+  "name": "guardex",
+  "displayName": "Guardex",
+  "description": "Real-time security diagnostics that detect unsafe code patterns.",
+  "version": "0.0.1",
+  "main": "./out/extension.js",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:python",
+    "onStartupFinished",
+    "onCommand:guardex.openSecurityGuide",
+    "onCommand:guardex.runFullScan"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "guardex.runFullScan",
+        "title": "Guardex: Run Full Project Scan",
+        "icon": {
+          "light": "resources/play-light.svg",
+          "dark": "resources/play-dark.svg"
+        }
+      },
+      {
+        "command": "guardex.openSecurityGuide",
+        "title": "Guardex: View Security Guide"
+      },
+      {
+        "command": "guardex.openFinding",
+        "title": "Guardex: Open Finding"
+      },
+      {
+        "command": "guardex.refreshDashboard",
+        "title": "Guardex: Refresh Dashboard"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "guardex.dashboard",
+          "name": "Guardex Security Dashboard"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "guardex.runFullScan",
+          "when": "view == guardex.dashboard",
+          "group": "navigation"
+        },
+        {
+          "command": "guardex.refreshDashboard",
+          "when": "view == guardex.dashboard",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "guardex.openFinding",
+          "when": "view == guardex.dashboard && viewItem == finding",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.105.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
