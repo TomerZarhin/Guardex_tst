@@ -5,6 +5,7 @@ import { rules } from './diagnostics/rules/allRules';
 import { DashboardProvider } from './dashboard';
 import { SecurityReportView } from './securityReport';
 import { SqlInjectionCodeActionProvider } from './diagnostics/rules/sqlInjectionRule';
+import { XssCodeActionProvider } from './diagnostics/rules/xssRule';
 
 /**
  * Guardex - Real-time Security Diagnostics Extension
@@ -92,6 +93,17 @@ export function activate(context: vscode.ExtensionContext) {
     ],
     new SqlInjectionCodeActionProvider(),
     { providedCodeActionKinds: SqlInjectionCodeActionProvider.providedCodeActionKinds }
+  )
+);
+
+context.subscriptions.push(
+  vscode.languages.registerCodeActionsProvider(
+    [
+      { scheme: 'file', language: 'javascript' },
+      { scheme: 'file', language: 'typescript' }
+    ],
+    new XssCodeActionProvider(),
+    { providedCodeActionKinds: XssCodeActionProvider.providedCodeActionKinds }
   )
 );
 
