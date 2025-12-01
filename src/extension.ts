@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { runAllRules } from './diagnostics/ruleManager';
 import { GuardexCodeActionProvider } from './diagnostics/codeActionProvider';
 import { rules } from './diagnostics/rules/allRules';
@@ -7,164 +8,170 @@ import { SecurityReportView } from './securityReport';
 import { SqlInjectionCodeActionProvider } from './diagnostics/rules/sqlInjectionRule';
 import { XssCodeActionProvider } from './diagnostics/rules/xssRule';
 
-/**
- * Guardex - Real-time Security Diagnostics Extension
- */
 export function activate(context: vscode.ExtensionContext) {
   const diagnostics = vscode.languages.createDiagnosticCollection('guardex');
   let debounceTimer: NodeJS.Timeout | undefined;
 
-  // 📘 פקודה כללית לפתיחת מדריך אבטחה
+  // -------------------- DASHBOARD -------------------
+  // 📊 Command: Open Guardex Dashboard
+const openDashboardCmd = vscode.commands.registerCommand(
+  "guardex.openDashboard",
+  async () => {
+    const panel = vscode.window.createWebviewPanel(
+      "guardexDashboard",
+      "Guardex — Security Dashboard",
+      vscode.ViewColumn.Beside,
+      {
+        enableScripts: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard"),
+          vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard", "libs")
+        ]
+      }
+    );
+
+    // Load HTML
+    const htmlPath = vscode.Uri.joinPath(
+      context.extensionUri,
+      "src",
+      "resources",
+      "dashboard",
+      "index.html"
+    );
+
+    let html = fs.readFileSync(htmlPath.fsPath, "utf8");
+
+    // Convert JS libs to URIs
+    const chartUri = panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard", "libs", "chart.min.js")
+    );
+
+    const dashboardScriptUri = panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard", "dashboard.js")
+    );
+
+    // Inject scripts
+    html = html
+      .replace(`<script id="chart-lib"></script>`, `<script src="${chartUri}"></script>`)
+      .replace(`<script id="dashboard-script"></script>`, `<script src="${dashboardScriptUri}"></script>`);
+
+    panel.webview.html = html;
+
+    // Send findings after load
+    setTimeout(() => {
+      const findings = collectAllFindings();
+      panel.webview.postMessage(findings);
+    }, 400);
+  }
+);
+
+context.subscriptions.push(openDashboardCmd);
+
+  // -------------------- SERIALIZE FINDINGS --------------------
+  function collectAllFindings() {
+    const results: any[] = [];
+    const all = vscode.languages.getDiagnostics();
+
+    for (const [uri, diags] of all) {
+      for (const d of diags) {
+        results.push({
+          ruleId: String(d.code),
+          message: d.message,
+          file: uri.fsPath,
+          severity: d.severity,
+          relatedUrl: (d as any).relatedUrl,
+
+          range: {
+            start: { line: d.range.start.line, character: d.range.start.character },
+            end: { line: d.range.end.line, character: d.range.end.character }
+          }
+        });
+      }
+    }
+
+    return results;
+  }
+
+  // ---------------- SECURITY GUIDE ----------------
   const openSecurityGuideCmd = vscode.commands.registerCommand(
     'guardex.openSecurityGuide',
-    (url?: string, description?: string) => {
-      if (!url) {
-        vscode.window.showErrorMessage('Guardex: No security guide URL found for this rule.');
-        return;
+    (arg1?: any, arg2?: any) => {
+      let url: string | undefined;
+      let description: string | undefined;
+
+      if (Array.isArray(arg1)) {
+        [url, description] = arg1;
+      } else if (typeof arg1 === 'string' && arg1.trim().startsWith('[')) {
+        try {
+          const arr = JSON.parse(arg1);
+          url = arr[0];
+          description = arr[1];
+        } catch {
+          url = arg1;
+          description = arg2;
+        }
+      } else {
+        url = arg1;
+        description = arg2;
       }
+
+      if (!url) return;
 
       const panel = vscode.window.createWebviewPanel(
         'guardexGuide',
-        'Guardex Security Guide',
+        `Security Guide — ${description}`,
         vscode.ViewColumn.Beside,
         { enableScripts: true }
       );
 
       panel.webview.html = `
-        <html>
-          <body style="margin:0;padding:0;overflow:hidden;background-color:#1e1e1e;color:white;">
-            <div style="font-family:sans-serif;padding:10px 14px;">
-              <h2 style="margin-top:0;">${description ?? 'Security Guide'}</h2>
-              <iframe 
-                src="${url}" 
-                style="width:100%;height:90vh;border:none;background:white;">
-              </iframe>
-            </div>
-          </body>
-        </html>`;
+      <html>
+      <head>
+        <meta charset="UTF-8">
+      </head>
+      <body style="margin:0;padding:0;">
+      <iframe src="${url}" style="border:none;width:100%;height:100vh"></iframe>
+      </body>
+      </html>`;
     }
   );
+
   context.subscriptions.push(openSecurityGuideCmd);
 
-  // 💡 רישום של Quick Fix
+  // ---------------- CODE ACTIONS ----------------
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
-      { scheme: 'file', language: 'javascript' },
-      new GuardexCodeActionProvider(),
-      { providedCodeActionKinds: GuardexCodeActionProvider.providedCodeActionKinds }
-    )
-  );
-
-  // 💬 Hover Provider - מציג קישור לחיץ
-  context.subscriptions.push(
-    vscode.languages.registerHoverProvider(
-      [{ scheme: 'file', language: 'javascript' }, { scheme: 'file', language: 'typescript' }],
-      {
-        provideHover(doc, pos) {
-          const diags = vscode.languages
-            .getDiagnostics(doc.uri)
-            .filter(d => d.range.contains(pos) && typeof d.code === 'string');
-
-          if (diags.length === 0) return;
-
-          const diag = diags[0];
-          const rule = rules.find(r => r.id === diag.code);
-
-          if (!rule?.relatedInfo?.url) return;
-
-          const args = encodeURIComponent(JSON.stringify([rule.relatedInfo.url, rule.description]));
-          const markdown = new vscode.MarkdownString(
-            `[🔗 View Security Guide](command:guardex.openSecurityGuide?${args})`
-          );
-          markdown.isTrusted = true;
-
-          return new vscode.Hover(markdown);
-        }
-      }
+      { scheme: "file", language: "javascript" },
+      new GuardexCodeActionProvider()
     )
   );
 
   context.subscriptions.push(
-  vscode.languages.registerCodeActionsProvider(
-    [
-      { scheme: 'file', language: 'javascript' },
-      { scheme: 'file', language: 'typescript' },
-      { scheme: 'file', language: 'python' }
-    ],
-    new SqlInjectionCodeActionProvider(),
-    { providedCodeActionKinds: SqlInjectionCodeActionProvider.providedCodeActionKinds }
-  )
-);
-
-context.subscriptions.push(
-  vscode.languages.registerCodeActionsProvider(
-    [
-      { scheme: 'file', language: 'javascript' },
-      { scheme: 'file', language: 'typescript' }
-    ],
-    new XssCodeActionProvider(),
-    { providedCodeActionKinds: XssCodeActionProvider.providedCodeActionKinds }
-  )
-);
-
-  // 🧭 Dashboard registration (TreeView)
-  const dashboardProvider = new DashboardProvider();
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('guardex.dashboard', dashboardProvider)
+    vscode.languages.registerCodeActionsProvider(
+      [{ scheme: "file", language: "javascript" }, { scheme: "file", language: "typescript" }, { scheme: "file", language: "python" }],
+      new SqlInjectionCodeActionProvider()
+    )
   );
 
-  // 📂 פקודה לפתיחת ממצא
   context.subscriptions.push(
-    vscode.commands.registerCommand('guardex.openFinding', (finding) => {
-      const uri = vscode.Uri.file(finding.file);
-      vscode.window.showTextDocument(uri).then(editor => {
-        editor.revealRange(finding.range, vscode.TextEditorRevealType.InCenter);
-        editor.selection = new vscode.Selection(finding.range.start, finding.range.end);
-        SecurityReportView.show(finding);
-      });
-    })
+    vscode.languages.registerCodeActionsProvider(
+      [{ scheme: "file", language: "javascript" }, { scheme: "file", language: "typescript" }],
+      new XssCodeActionProvider()
+    )
   );
 
-  // 🔁 רענון הדאשבורד
-  context.subscriptions.push(
-    vscode.commands.registerCommand('guardex.refreshDashboard', () => {
-      dashboardProvider.refresh();
-    })
-  );
-
-  // 🧮 פקודה חדשה: Scan on Demand
-  context.subscriptions.push(
-    vscode.commands.registerCommand('guardex.runFullScan', async () => {
-      vscode.window.showInformationMessage('Guardex: Running full project scan...');
-      const uris = await vscode.workspace.findFiles('**/*.{js,ts,py}', '**/node_modules/**');
-
-      for (const uri of uris) {
-        const doc = await vscode.workspace.openTextDocument(uri);
-        const text = doc.getText();
-        const fileDiagnostics = runAllRules(text, doc);
-        diagnostics.set(uri, fileDiagnostics);
-      }
-
-      setTimeout(() => dashboardProvider.refresh(), 300);
-      vscode.window.showInformationMessage('Guardex: Full scan completed.');
-    })
-  );
-
-  // מאזינים לשינויים בקבצים
+  // ---------------- AUTO-SCAN ----------------
   vscode.workspace.onDidOpenTextDocument(scanDocument);
   vscode.workspace.onDidChangeTextDocument(e => {
     if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => scanDocument(e.document), 400);
+    debounceTimer = setTimeout(() => scanDocument(e.document), 300);
   });
 
   function scanDocument(document: vscode.TextDocument) {
-    if (document.languageId === 'json' || document.languageId === 'markdown') return;
+    if (!["javascript", "typescript", "python"].includes(document.languageId)) return;
 
     const text = document.getText();
-    const allDiagnostics = runAllRules(text, document);
-
-    diagnostics.set(document.uri, allDiagnostics);
-    setTimeout(() => dashboardProvider.refresh(), 200);
+    diagnostics.set(document.uri, runAllRules(text, document));
   }
 }
 

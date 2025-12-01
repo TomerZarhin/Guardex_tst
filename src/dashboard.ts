@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
-import { rules } from './diagnostics/rules/allRules';
+import { Diagnostic } from 'vscode';
 
 export interface Finding {
-  id: string;
   ruleId: string;
   message: string;
   file: string;
@@ -11,137 +10,117 @@ export interface Finding {
   relatedUrl?: string;
 }
 
+export class DashboardProvider implements vscode.TreeDataProvider<FindingItem | SeverityGroup> {
+  private _onDidChangeTreeData: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+  readonly onDidChangeTreeData: vscode.Event<void> = this._onDidChangeTreeData.event;
+
+  refresh() {
+    this._onDidChangeTreeData.fire();
+  }
+
+  getTreeItem(element: FindingItem | SeverityGroup): vscode.TreeItem {
+    return element;
+  }
+
+  async getChildren(element?: SeverityGroup | FindingItem): Promise<(FindingItem | SeverityGroup)[]> {
+    if (!element) {
+      const diagnostics = this.collectDiagnostics();
+      const groups = this.groupBySeverity(diagnostics);
+      return groups;
+    }
+
+    if (element instanceof SeverityGroup) {
+      return element.findings.map(f => new FindingItem(f));
+    }
+
+    return [];
+  }
+
+  private collectDiagnostics(): Finding[] {
+    const result: Finding[] = [];
+    const collection = vscode.languages.getDiagnostics();
+
+    for (const [uri, diags] of collection) {
+      for (const d of diags) {
+        result.push({
+          ruleId: String(d.code),
+          message: d.message,
+          file: uri.fsPath,
+          range: d.range,
+          severity: d.severity,
+          relatedUrl: (d as any).relatedUrl
+        });
+      }
+    }
+
+    return result;
+  }
+
+  private groupBySeverity(findings: Finding[]): SeverityGroup[] {
+    const groups: { [key: string]: Finding[] } = {
+      [vscode.DiagnosticSeverity.Error]: [],
+      [vscode.DiagnosticSeverity.Warning]: [],
+      [vscode.DiagnosticSeverity.Information]: []
+    };
+
+    findings.forEach(f => {
+      if (f.severity in groups) {
+        groups[f.severity].push(f);
+      }
+    });
+
+    return [
+      new SeverityGroup("Errors", vscode.DiagnosticSeverity.Error, groups[vscode.DiagnosticSeverity.Error]),
+      new SeverityGroup("Warnings", vscode.DiagnosticSeverity.Warning, groups[vscode.DiagnosticSeverity.Warning]),
+      new SeverityGroup("Info", vscode.DiagnosticSeverity.Information, groups[vscode.DiagnosticSeverity.Information])
+    ];
+  }
+}
+
+class SeverityGroup extends vscode.TreeItem {
+  constructor(
+    public readonly label: string,
+    public readonly severity: vscode.DiagnosticSeverity,
+    public readonly findings: Finding[]
+  ) {
+    super(`${label} (${findings.length})`, vscode.TreeItemCollapsibleState.Collapsed);
+
+    this.iconPath = new vscode.ThemeIcon(
+      severity === vscode.DiagnosticSeverity.Error
+        ? "error"
+        : severity === vscode.DiagnosticSeverity.Warning
+        ? "warning"
+        : "info"
+    );
+
+    this.contextValue = 'severityGroup';
+  }
+}
+
 class FindingItem extends vscode.TreeItem {
-  constructor(public finding: Finding) {
-    const prefix =
-      finding.severity === vscode.DiagnosticSeverity.Error
-        ? '🔴'
-        : finding.severity === vscode.DiagnosticSeverity.Warning
-        ? '🟡'
-        : '🔵';
+  constructor(public readonly finding: Finding) {
+    super(
+      `${FindingItem.getSeverityIcon(finding.severity)} ${finding.ruleId} — ${FindingItem.shortenPath(finding.file)}`,
+      vscode.TreeItemCollapsibleState.None
+    );
 
-    super(`${prefix} ${finding.ruleId} — ${finding.message}`, vscode.TreeItemCollapsibleState.None);
-
-    this.tooltip = `${finding.file}:${finding.range.start.line + 1}`;
+    this.tooltip = `${finding.message}\nFile: ${finding.file}`;
     this.command = {
       command: 'guardex.openFinding',
       title: 'Open Finding',
       arguments: [finding]
     };
-    this.contextValue = 'finding';
-    this.iconPath =
-      finding.severity === vscode.DiagnosticSeverity.Error
-        ? new vscode.ThemeIcon('error')
-        : finding.severity === vscode.DiagnosticSeverity.Warning
-        ? new vscode.ThemeIcon('warning')
-        : new vscode.ThemeIcon('info');
-  }
-}
-
-class FileItem extends vscode.TreeItem {
-  constructor(public filePath: string, public children: FindingItem[]) {
-    const fileName = vscode.Uri.file(filePath).fsPath.split(/[/\\]/).pop() ?? filePath;
-    super(fileName, vscode.TreeItemCollapsibleState.Collapsed);
-    this.contextValue = 'file';
-
-    // badge showing count of findings
-    const issueCount = children.length;
-    const badge =
-      issueCount === 1 ? '1 issue' : `${issueCount} issues`;
-    this.description = badge;
-
-    // choose icon based on highest severity
-    const hasError = children.some(c => c.finding.severity === vscode.DiagnosticSeverity.Error);
-    const hasWarning = children.some(c => c.finding.severity === vscode.DiagnosticSeverity.Warning);
-    this.iconPath = hasError
-      ? new vscode.ThemeIcon('error')
-      : hasWarning
-      ? new vscode.ThemeIcon('warning')
-      : new vscode.ThemeIcon('info');
-  }
-}
-
-export class DashboardProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | void> = new vscode.EventEmitter();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-
-  constructor() {}
-
-  refresh(): void {
-    this._onDidChangeTreeData.fire();
   }
 
-  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
-    return element;
+  static getSeverityIcon(sev: vscode.DiagnosticSeverity) {
+    return sev === vscode.DiagnosticSeverity.Error
+      ? "🔴"
+      : sev === vscode.DiagnosticSeverity.Warning
+      ? "🟡"
+      : "🔵";
   }
 
-  async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
-    if (element instanceof FileItem) {
-      return element.children;
-    }
-
-    const allDiags = vscode.languages.getDiagnostics();
-    const findings: Finding[] = [];
-
-    for (const [uri, diags] of allDiags) {
-      const file = uri.fsPath;
-      for (const d of diags) {
-        const id = `${file}:${d.range.start.line}:${d.range.start.character}:${d.code ?? d.message}`;
-        const finding: Finding = {
-          id,
-          ruleId: String(d.code ?? 'UNKNOWN'),
-          message: d.message,
-          file,
-          range: d.range,
-          severity: d.severity,
-          relatedUrl: undefined
-        };
-
-        if (d.relatedInformation && d.relatedInformation.length) {
-          const msg = String(d.relatedInformation[0].message);
-          const m = msg.match(/https?:\/\/\S+/);
-          if (m) finding.relatedUrl = m[0];
-        }
-
-        findings.push(finding);
-      }
-    }
-
-    // group findings by file
-    const byFile = new Map<string, Finding[]>();
-    for (const f of findings) {
-      const arr = byFile.get(f.file) ?? [];
-      arr.push(f);
-      byFile.set(f.file, arr);
-    }
-
-    // create items
-    const fileItems: FileItem[] = [];
-    for (const [filePath, fsFindings] of byFile) {
-      const children = fsFindings.map(f => new FindingItem(f));
-      fileItems.push(new FileItem(filePath, children));
-    }
-
-    // counts for header
-    const errorCount = findings.filter(f => f.severity === vscode.DiagnosticSeverity.Error).length;
-    const warningCount = findings.filter(f => f.severity === vscode.DiagnosticSeverity.Warning).length;
-    const infoCount = findings.filter(f => f.severity === vscode.DiagnosticSeverity.Information).length;
-
-    const summary = new vscode.TreeItem(
-      `Summary: ❌ ${errorCount}  ⚠️ ${warningCount}  ℹ️ ${infoCount}`,
-      vscode.TreeItemCollapsibleState.None
-    );
-    summary.iconPath = new vscode.ThemeIcon('shield');
-    summary.contextValue = 'summary';
-
-    const resultList: vscode.TreeItem[] = [summary, ...fileItems];
-
-    if (fileItems.length === 0) {
-      return [new vscode.TreeItem('No findings detected')];
-    }
-
-    fileItems.sort((a, b) => b.children.length - a.children.length);
-
-    return resultList;
+  static shortenPath(path: string) {
+    return path.split(/[/\\]/).slice(-1)[0];
   }
 }
