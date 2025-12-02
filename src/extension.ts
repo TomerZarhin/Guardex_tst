@@ -1,71 +1,131 @@
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import { runAllRules } from './diagnostics/ruleManager';
-import { GuardexCodeActionProvider } from './diagnostics/codeActionProvider';
-import { rules } from './diagnostics/rules/allRules';
-import { DashboardProvider } from './dashboard';
-import { SecurityReportView } from './securityReport';
-import { SqlInjectionCodeActionProvider } from './diagnostics/rules/sqlInjectionRule';
-import { XssCodeActionProvider } from './diagnostics/rules/xssRule';
+import * as vscode from "vscode";
+import * as fs from "fs";
+import { runAllRules } from "./diagnostics/ruleManager";
+import { GuardexCodeActionProvider } from "./diagnostics/codeActionProvider";
+// import { rules } from './diagnostics/rules/allRules'; // unused in snippet provided
+import { SqlInjectionCodeActionProvider } from "./diagnostics/rules/sqlInjectionRule";
+import { XssCodeActionProvider } from "./diagnostics/rules/xssRule";
 
 export function activate(context: vscode.ExtensionContext) {
-  const diagnostics = vscode.languages.createDiagnosticCollection('guardex');
+  const diagnostics = vscode.languages.createDiagnosticCollection("guardex");
   let debounceTimer: NodeJS.Timeout | undefined;
 
+  // 1. Keep track of the current panel so we can update it later
+  let currentPanel: vscode.WebviewPanel | undefined = undefined;
+
   // -------------------- DASHBOARD -------------------
-  // 📊 Command: Open Guardex Dashboard
-const openDashboardCmd = vscode.commands.registerCommand(
-  "guardex.openDashboard",
-  async () => {
-    const panel = vscode.window.createWebviewPanel(
-      "guardexDashboard",
-      "Guardex — Security Dashboard",
-      vscode.ViewColumn.Beside,
-      {
-        enableScripts: true,
-        localResourceRoots: [
-          vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard"),
-          vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard", "libs")
-        ]
+  const openDashboardCmd = vscode.commands.registerCommand(
+    "guardex.openDashboard",
+    async () => {
+      // If panel already exists, just show it
+      if (currentPanel) {
+        currentPanel.reveal(vscode.ViewColumn.Beside);
+        return;
       }
-    );
 
-    // Load HTML
-    const htmlPath = vscode.Uri.joinPath(
-      context.extensionUri,
-      "src",
-      "resources",
-      "dashboard",
-      "index.html"
-    );
+      currentPanel = vscode.window.createWebviewPanel(
+        "guardexDashboard",
+        "Guardex — Security Dashboard",
+        vscode.ViewColumn.Beside,
+        {
+          enableScripts: true,
+          localResourceRoots: [
+            vscode.Uri.joinPath(
+              context.extensionUri,
+              "src",
+              "resources",
+              "dashboard"
+            ),
+            vscode.Uri.joinPath(
+              context.extensionUri,
+              "src",
+              "resources",
+              "dashboard",
+              "libs"
+            ),
+          ],
+        }
+      );
 
-    let html = fs.readFileSync(htmlPath.fsPath, "utf8");
+      // Cleanup when closed
+      currentPanel.onDidDispose(
+        () => {
+          currentPanel = undefined;
+        },
+        null,
+        context.subscriptions
+      );
 
-    // Convert JS libs to URIs
-    const chartUri = panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard", "libs", "chart.min.js")
-    );
+      // Load HTML
+      const htmlPath = vscode.Uri.joinPath(
+        context.extensionUri,
+        "src",
+        "resources",
+        "dashboard",
+        "index.html"
+      );
 
-    const dashboardScriptUri = panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(context.extensionUri, "src", "resources", "dashboard", "dashboard.js")
-    );
+      let html = fs.readFileSync(htmlPath.fsPath, "utf8");
 
-    // Inject scripts
-    html = html
-      .replace(`<script id="chart-lib"></script>`, `<script src="${chartUri}"></script>`)
-      .replace(`<script id="dashboard-script"></script>`, `<script src="${dashboardScriptUri}"></script>`);
+      // Convert JS libs to URIs
+      const chartUri = currentPanel.webview.asWebviewUri(
+        vscode.Uri.joinPath(
+          context.extensionUri,
+          "src",
+          "resources",
+          "dashboard",
+          "libs",
+          "chart.min.js"
+        )
+      );
 
-    panel.webview.html = html;
+      const dashboardScriptUri = currentPanel.webview.asWebviewUri(
+        vscode.Uri.joinPath(
+          context.extensionUri,
+          "src",
+          "resources",
+          "dashboard",
+          "dashboard.js"
+        )
+      );
 
-    // Send findings after load
-    setTimeout(() => {
-      const findings = collectAllFindings();
-      panel.webview.postMessage(findings);
-    }, 400);
+      // Inject scripts
+      html = html
+        .replace(
+          `<script id="chart-lib"></script>`,
+          `<script src="${chartUri}"></script>`
+        )
+        .replace(
+          `<script id="dashboard-script"></script>`,
+          `<script src="${dashboardScriptUri}"></script>`
+        );
+
+      currentPanel.webview.html = html;
+
+      // Send initial findings
+      updateDashboard();
+    }
+  );
+
+  context.subscriptions.push(openDashboardCmd);
+
+  // -------------------- LISTEN FOR UPDATES --------------------
+  // 2. This is the key part: When diagnostics change, update the dashboard
+  const diagnosticChangeListener = vscode.languages.onDidChangeDiagnostics(
+    () => {
+      if (currentPanel && currentPanel.visible) {
+        updateDashboard();
+      }
+    }
+  );
+
+  context.subscriptions.push(diagnosticChangeListener);
+
+  function updateDashboard() {
+    if (!currentPanel) return;
+    const findings = collectAllFindings();
+    currentPanel.webview.postMessage(findings);
   }
-);
-
-context.subscriptions.push(openDashboardCmd);
 
   // -------------------- SERIALIZE FINDINGS --------------------
   function collectAllFindings() {
@@ -74,6 +134,9 @@ context.subscriptions.push(openDashboardCmd);
 
     for (const [uri, diags] of all) {
       for (const d of diags) {
+        // Optional: Filter only for your specific source if needed
+        // if (d.source !== 'guardex') continue;
+
         results.push({
           ruleId: String(d.code),
           message: d.message,
@@ -82,9 +145,12 @@ context.subscriptions.push(openDashboardCmd);
           relatedUrl: (d as any).relatedUrl,
 
           range: {
-            start: { line: d.range.start.line, character: d.range.start.character },
-            end: { line: d.range.end.line, character: d.range.end.character }
-          }
+            start: {
+              line: d.range.start.line,
+              character: d.range.start.character,
+            },
+            end: { line: d.range.end.line, character: d.range.end.character },
+          },
         });
       }
     }
@@ -94,14 +160,16 @@ context.subscriptions.push(openDashboardCmd);
 
   // ---------------- SECURITY GUIDE ----------------
   const openSecurityGuideCmd = vscode.commands.registerCommand(
-    'guardex.openSecurityGuide',
+    "guardex.openSecurityGuide",
     (arg1?: any, arg2?: any) => {
+      // ... (Your existing code for the guide remains unchanged)
+      // keeping it brief for the response, but keep your original logic here
       let url: string | undefined;
       let description: string | undefined;
 
       if (Array.isArray(arg1)) {
         [url, description] = arg1;
-      } else if (typeof arg1 === 'string' && arg1.trim().startsWith('[')) {
+      } else if (typeof arg1 === "string" && arg1.trim().startsWith("[")) {
         try {
           const arr = JSON.parse(arg1);
           url = arr[0];
@@ -118,21 +186,21 @@ context.subscriptions.push(openDashboardCmd);
       if (!url) return;
 
       const panel = vscode.window.createWebviewPanel(
-        'guardexGuide',
+        "guardexGuide",
         `Security Guide — ${description}`,
         vscode.ViewColumn.Beside,
         { enableScripts: true }
       );
 
       panel.webview.html = `
-      <html>
-      <head>
-        <meta charset="UTF-8">
-      </head>
-      <body style="margin:0;padding:0;">
-      <iframe src="${url}" style="border:none;width:100%;height:100vh"></iframe>
-      </body>
-      </html>`;
+        <html>
+        <head>
+          <meta charset="UTF-8">
+        </head>
+        <body style="margin:0;padding:0;">
+        <iframe src="${url}" style="border:none;width:100%;height:100vh"></iframe>
+        </body>
+        </html>`;
     }
   );
 
@@ -148,30 +216,40 @@ context.subscriptions.push(openDashboardCmd);
 
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
-      [{ scheme: "file", language: "javascript" }, { scheme: "file", language: "typescript" }, { scheme: "file", language: "python" }],
+      [
+        { scheme: "file", language: "javascript" },
+        { scheme: "file", language: "typescript" },
+        { scheme: "file", language: "python" },
+      ],
       new SqlInjectionCodeActionProvider()
     )
   );
 
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
-      [{ scheme: "file", language: "javascript" }, { scheme: "file", language: "typescript" }],
+      [
+        { scheme: "file", language: "javascript" },
+        { scheme: "file", language: "typescript" },
+      ],
       new XssCodeActionProvider()
     )
   );
 
   // ---------------- AUTO-SCAN ----------------
   vscode.workspace.onDidOpenTextDocument(scanDocument);
-  vscode.workspace.onDidChangeTextDocument(e => {
+  vscode.workspace.onDidChangeTextDocument((e) => {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => scanDocument(e.document), 300);
   });
 
   function scanDocument(document: vscode.TextDocument) {
-    if (!["javascript", "typescript", "python"].includes(document.languageId)) return;
+    if (!["javascript", "typescript", "python"].includes(document.languageId))
+      return;
 
     const text = document.getText();
     diagnostics.set(document.uri, runAllRules(text, document));
+    // Note: The listener onDidChangeDiagnostics created above will handle the dashboard update automatically
+    // once this set() completes.
   }
 }
 
