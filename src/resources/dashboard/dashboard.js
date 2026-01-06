@@ -1,18 +1,24 @@
+/**
+ * GuardEx Dashboard Script
+ * Handles rendering of security findings and data visualization
+ */
+
 // Global variables to track chart instances
-let severityChartInstance = null;
+let vulnerabilityChartInstance = null;
 let fileChartInstance = null;
 
+// Handle messages from the VS Code Extension
 window.addEventListener("message", (event) => {
   const findings = event.data;
   if (!Array.isArray(findings)) return;
 
   renderAllFindings(findings);
-  renderSeverityChart(findings);
+  renderVulnerabilityChart(findings); // Now grouping by Type/RuleID
   renderFileChart(findings);
   renderHeatmap(findings);
 });
 
-// --- TABLE ---
+// --- 1. TABLE: List all findings ---
 function renderAllFindings(findings) {
   const tbody = document.querySelector("#findingsTable tbody");
   tbody.innerHTML = "";
@@ -20,7 +26,7 @@ function renderAllFindings(findings) {
   findings.forEach((f) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-          <td>${severityLabel(f.severity)}</td>
+          
           <td>${f.ruleId}</td>
           <td>${f.file.split(/[\\/]/).pop()}</td>
           <td>${f.range.start.line + 1}</td>
@@ -33,51 +39,72 @@ function severityLabel(s) {
   return s === 0 ? "❌ Error" : s === 1 ? "⚠ Warning" : "ℹ Info";
 }
 
-// --- PIE CHART (Severity) ---
-function renderSeverityChart(findings) {
+// --- 2. PIE CHART: Vulnerability Types (Rule IDs) ---
+function renderVulnerabilityChart(findings) {
   const ctx = document.getElementById("severityPie");
 
-  // Calculate Data
-  const counts = {
-    error: findings.filter((f) => f.severity === 0).length,
-    warn: findings.filter((f) => f.severity === 1).length,
-    info: findings.filter((f) => f.severity === 2).length,
-  };
-  const dataValues = [counts.error, counts.warn, counts.info];
+  // Calculate Data: Group by Rule ID (e.g., 'sql-injection', 'cross-site-scripting')
+  const counts = {};
+  findings.forEach((f) => {
+    counts[f.ruleId] = (counts[f.ruleId] || 0) + 1;
+  });
 
-  // 1. UPDATE existing chart if it exists (Smooth Animation)
-  if (severityChartInstance) {
-    severityChartInstance.data.datasets[0].data = dataValues;
-    severityChartInstance.update();
+  const labels = Object.keys(counts);
+  const dataValues = Object.values(counts);
+
+  // Dynamic colors for different vulnerability types
+  const colorPalette = [
+    "#ff4d4d", // Red
+    "#ffcc00", // Yellow
+    "#58a6ff", // Blue
+    "#7ee787", // Green
+    "#d2a8ff", // Purple
+    "#ffa657", // Orange
+  ];
+
+  // 1. UPDATE existing chart if it exists
+  if (vulnerabilityChartInstance) {
+    vulnerabilityChartInstance.data.labels = labels;
+    vulnerabilityChartInstance.data.datasets[0].data = dataValues;
+    vulnerabilityChartInstance.data.datasets[0].backgroundColor =
+      colorPalette.slice(0, labels.length);
+    vulnerabilityChartInstance.update();
     return;
   }
 
-  // 2. CREATE new chart if it doesn't exist
-  severityChartInstance = new Chart(ctx, {
+  // 2. CREATE new chart
+  vulnerabilityChartInstance = new Chart(ctx, {
     type: "pie",
     data: {
-      labels: ["Error", "Warning", "Info"],
+      labels: labels,
       datasets: [
         {
           data: dataValues,
-          backgroundColor: ["#ff4d4d", "#ffcc00", "#58a6ff"],
+          backgroundColor: colorPalette.slice(0, labels.length),
         },
       ],
     },
     options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" },
+        title: {
+          display: true,
+          text: "Vulnerabilities by Category",
+        },
+      },
       animation: {
-        duration: 800, // 800ms smooth transition
+        duration: 800,
         easing: "easeOutQuart",
       },
     },
   });
 }
 
-// --- BAR CHART (Files) ---
+// --- 3. BAR CHART: Findings per File ---
 function renderFileChart(findings) {
   const ctx = document.getElementById("fileBar");
 
-  // Calculate Data
   const grouped = {};
   findings.forEach((f) => {
     const file = f.file.split(/[\\/]/).pop();
@@ -87,7 +114,6 @@ function renderFileChart(findings) {
   const labels = Object.keys(grouped);
   const dataValues = Object.values(grouped);
 
-  // 1. UPDATE existing chart
   if (fileChartInstance) {
     fileChartInstance.data.labels = labels;
     fileChartInstance.data.datasets[0].data = dataValues;
@@ -95,23 +121,20 @@ function renderFileChart(findings) {
     return;
   }
 
-  // 2. CREATE new chart
   fileChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
       labels: labels,
       datasets: [
         {
-          label: "Findings",
+          label: "Issues Found",
           data: dataValues,
           backgroundColor: "#58a6ff",
         },
       ],
     },
     options: {
-      animation: {
-        duration: 800,
-      },
+      animation: { duration: 800 },
       scales: {
         y: {
           beginAtZero: true,
@@ -122,7 +145,7 @@ function renderFileChart(findings) {
   });
 }
 
-// --- HEATMAP ---
+// --- 4. HEATMAP: Visual Hotspots ---
 function renderHeatmap(findings) {
   const container = document.getElementById("heatmap");
   container.innerHTML = "";
@@ -137,6 +160,7 @@ function renderHeatmap(findings) {
     const box = document.createElement("div");
     box.className = "heatbox";
 
+    // Increase red intensity based on count of issues
     const intensity = Math.min(255, 60 + count * 25);
     box.style.backgroundColor = `rgb(${intensity}, 50, 50)`;
     box.style.color = "white";

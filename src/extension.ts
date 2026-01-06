@@ -135,7 +135,13 @@ export function activate(context: vscode.ExtensionContext) {
     for (const [uri, diags] of all) {
       for (const d of diags) {
         // Optional: Filter only for your specific source if needed
-        // if (d.source !== 'guardex') continue;
+        if (
+          d.code !== "sql-injection" &&
+          d.code !== "cross-site-scripting" &&
+          d.code !== "HARDCODED_PASSWORD"
+        ) {
+          continue;
+        }
 
         results.push({
           ruleId: String(d.code),
