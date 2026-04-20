@@ -14,6 +14,7 @@
     "onLanguage:javascript",
     "onLanguage:typescript",
     "onLanguage:python",
+    "onLanguage:html",
     "onStartupFinished",
     "onCommand:guardex.openSecurityGuide",
     "onCommand:guardex.runFullScan"

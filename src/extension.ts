@@ -5,6 +5,7 @@ import { GuardexCodeActionProvider } from "./diagnostics/codeActionProvider";
 // import { rules } from './diagnostics/rules/allRules'; // unused in snippet provided
 import { SqlInjectionCodeActionProvider } from "./diagnostics/rules/sqlInjectionRule";
 import { XssCodeActionProvider } from "./diagnostics/rules/xssRule";
+import { DomXssCodeActionProvider } from "./diagnostics/rules/domXssRule";
 
 export function activate(context: vscode.ExtensionContext) {
   const diagnostics = vscode.languages.createDiagnosticCollection("guardex");
@@ -138,6 +139,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (
           d.code !== "sql-injection" &&
           d.code !== "cross-site-scripting" &&
+          d.code !== "dom-xss" &&
           d.code !== "HARDCODED_PASSWORD"
         ) {
           continue;
@@ -226,6 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
         { scheme: "file", language: "javascript" },
         { scheme: "file", language: "typescript" },
         { scheme: "file", language: "python" },
+        { scheme: "file", language: "html" },
       ],
       new SqlInjectionCodeActionProvider()
     )
@@ -236,8 +239,20 @@ export function activate(context: vscode.ExtensionContext) {
       [
         { scheme: "file", language: "javascript" },
         { scheme: "file", language: "typescript" },
+        { scheme: "file", language: "html" },
       ],
       new XssCodeActionProvider()
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      [
+        { scheme: "file", language: "javascript" },
+        { scheme: "file", language: "typescript" },
+        { scheme: "file", language: "html" },
+      ],
+      new DomXssCodeActionProvider()
     )
   );
 
@@ -249,7 +264,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   function scanDocument(document: vscode.TextDocument) {
-    if (!["javascript", "typescript", "python"].includes(document.languageId))
+    if (!["javascript", "typescript", "python", "html"].includes(document.languageId))
       return;
 
     const text = document.getText();
