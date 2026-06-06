@@ -1,26 +1,27 @@
 import * as vscode from "vscode";
+import { RegexRule } from "./RegexRule";
 
 /**
  * Cross-Site Scripting (XSS) Detection Rule
  * Detects dynamic content passed to dangerous DOM sinks (e.g., innerHTML)
  * without apparent sanitization.
  */
-export const xssRule = {
-  id: "cross-site-scripting",
-  description:
-    "Potential Cross-Site Scripting (XSS) vulnerability - Sanitize or escape user input before using DOM sinks.",
-  severity: vscode.DiagnosticSeverity.Warning, // Use Warning as it needs context validation
-
-  // Regex to catch common XSS sinks being assigned a dynamic string (concatenated or template literal)
-  patterns:[
-    /(?:(?:\.innerHTML|\.outerHTML|\.insertAdjacentHTML|document\.write|\.html|document\.getElementById)\s*(?:=|\+=|\(|\))\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`|.*?\.html\s*\(.*?\+.*?\)|.*?\.html\s*\(\s*`.*?\$\{.*?\}`))/gi
-  ],
-
-  relatedInfo: {
-    url: "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
-    message: "Learn more about XSS prevention",
-  },
-};
+export class XssRule extends RegexRule {
+  constructor() {
+    super(
+      "cross-site-scripting",
+      "Potential Cross-Site Scripting (XSS) vulnerability - Sanitize or escape user input before using DOM sinks.",
+      vscode.DiagnosticSeverity.Warning,
+      [
+        /(?:(?:\.innerHTML|\.outerHTML|\.insertAdjacentHTML|document\.write|\.html|document\.getElementById)\s*(?:=|\+=|\(|\))\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`|.*?\.html\s*\(.*?\+.*?\)|.*?\.html\s*\(\s*`.*?\$\{.*?\}`))/gi
+      ],
+      {
+        url: "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+        message: "Learn more about XSS prevention",
+      }
+    );
+  }
+}
 
 /**
  * Code Action Provider for XSS fixes
@@ -44,7 +45,6 @@ export class XssCodeActionProvider implements vscode.CodeActionProvider {
 
     const actions: vscode.CodeAction[] = [];
 
-    // Suggest a quick fix for sanitization
     const fixAction = new vscode.CodeAction(
       "💡 Suggest DOMPurify Sanitization (Requires Library)",
       vscode.CodeActionKind.QuickFix
@@ -53,7 +53,6 @@ export class XssCodeActionProvider implements vscode.CodeActionProvider {
     fixAction.diagnostics = [diagnostic];
     fixAction.edit = new vscode.WorkspaceEdit();
 
-    // Assume the dangerous variable is the one being assigned to the sink
     const hintText =
       "\n// TODO: Sanitize user input using a library like DOMPurify:\n// const safeHTML = DOMPurify.sanitize(userInput);\n";
 
@@ -65,16 +64,20 @@ export class XssCodeActionProvider implements vscode.CodeActionProvider {
 
     actions.push(fixAction);
 
-    // Add "Learn More" action
     const learnMoreAction = new vscode.CodeAction(
       "📚 Learn about XSS prevention",
       vscode.CodeActionKind.QuickFix
     );
+
     learnMoreAction.command = {
       command: "guardex.openSecurityGuide",
       title: "Open Security Guide",
-      arguments: [xssRule.relatedInfo?.url, xssRule.description],
+      arguments: [
+        "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+        "Potential Cross-Site Scripting (XSS) vulnerability - Sanitize or escape user input before using DOM sinks.",
+      ],
     };
+
     actions.push(learnMoreAction);
 
     return actions;

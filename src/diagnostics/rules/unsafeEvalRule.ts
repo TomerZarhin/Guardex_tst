@@ -1,17 +1,21 @@
 import * as vscode from 'vscode';
-import { SecurityRule } from '../types';
+import { RegexRule } from './RegexRule';
 
-/**
- * Detects usage of eval(), which can lead to code injection vulnerabilities.
- */
-export const unsafeEvalRule: SecurityRule = {
-  id: 'UNSAFE_EVAL',
-  description: '⚠ Use of eval() detected — may allow arbitrary code execution.',
-  severity: vscode.DiagnosticSeverity.Error,
-  patterns:[ /eval\s*\(/g
-  ],
-  relatedInfo: {
-    message: 'Avoid using eval(). It can execute malicious code. See OWASP Code Injection guide.',
-    url: 'https://cheatsheetseries.owasp.org/cheatsheets/Browser_Extension_Vulnerabilities_Cheat_Sheet.html#vulnerability-code-injection'
+export class UnsafeEvalRule extends RegexRule {
+  constructor() {
+    super(
+      'UNSAFE_EVAL',
+      '⚠ Use of eval() detected — may allow arbitrary code execution.',
+      vscode.DiagnosticSeverity.Error,
+      [
+        /eval\s*\(/g
+      ],
+      {
+        message:
+          'Avoid using eval(). It can execute malicious code. See OWASP Code Injection guide.',
+        url:
+          'https://cheatsheetseries.owasp.org/cheatsheets/Browser_Extension_Vulnerabilities_Cheat_Sheet.html#vulnerability-code-injection'
+      }
+    );
   }
-};
+}

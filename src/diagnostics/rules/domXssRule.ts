@@ -1,27 +1,22 @@
 import * as vscode from "vscode";
+import { RegexRule } from "./RegexRule";
 
-/**
- * DOM-based XSS Detection Rule
- * Detects dangerous DOM sinks receiving data from untrusted sources:
- * localStorage, sessionStorage, URL parameters, document.cookie
- */
-export const domXssRule = {
-  id: "dom-xss",
-  description:
-    "Potential XSS vulnerability - Unsafe use of innerHTML, document.cookie, or data from untrusted sources",
-  severity: vscode.DiagnosticSeverity.Error,
-
-  // Regex to detect innerHTML/outerHTML assignments that are NOT wrapped in DOMPurify.sanitize()
-  // OR document.cookie access (can be used to steal session data)
-  patterns:[
-    /(?:(?:\.(?:innerHTML|outerHTML|insertAdjacentHTML)\s*(?:\+?=)\s*(?!\s*(?:DOMPurify\.sanitize\(|['"`])))|document\.cookie\b)/g
-  ],
-
-  relatedInfo: {
-    url: "https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html",
-    message: "Learn more about DOM XSS prevention",
-  },
-};
+export class DomXssRule extends RegexRule {
+  constructor() {
+    super(
+      "dom-xss",
+      "Potential XSS vulnerability - Unsafe use of innerHTML, document.cookie, or data from untrusted sources",
+      vscode.DiagnosticSeverity.Error,
+      [
+        /(?:(?:\.(?:innerHTML|outerHTML|insertAdjacentHTML)\s*(?:\+?=)\s*(?!\s*(?:DOMPurify\.sanitize\(|['"`])))|document\.cookie\b)/g
+      ],
+      {
+        url: "https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html",
+        message: "Learn more about DOM XSS prevention",
+      }
+    );
+  }
+}
 
 /**
  * Code Action Provider for DOM XSS fixes
@@ -66,11 +61,16 @@ export class DomXssCodeActionProvider implements vscode.CodeActionProvider {
       "📚 Learn about DOM XSS prevention",
       vscode.CodeActionKind.QuickFix,
     );
+
     learnMoreAction.command = {
       command: "guardex.openSecurityGuide",
       title: "Open Security Guide",
-      arguments: [domXssRule.relatedInfo?.url, domXssRule.description],
+      arguments: [
+        "https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html",
+        "Potential XSS vulnerability - Unsafe use of innerHTML, document.cookie, or data from untrusted sources",
+      ],
     };
+
     actions.push(learnMoreAction);
 
     return actions;

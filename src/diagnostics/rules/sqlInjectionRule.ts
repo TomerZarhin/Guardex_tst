@@ -1,25 +1,22 @@
 import * as vscode from "vscode";
+import { RegexRule } from "./RegexRule";
 
-/**
- * SQL Injection Detection Rule
- * Detects potentially unsafe SQL query patterns
- */
-export const sqlInjectionRule = {
-  id: "sql-injection",
-  description:
-    "Potential SQL Injection vulnerability - Use parameterized queries instead",
-  severity: vscode.DiagnosticSeverity.Error,
-
-  // Combined regex to catch common SQL injection patterns
-  patterns:[
-    /(?:(?:query|sql|execute|exec)\s*(?:=|\+=)\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`)|\.(?:query|execute|raw)\s*\(\s*(?:['"`].*?\$\{.*?\}.*?['"`]|.*?\+.*?\))|(?:cursor\.execute|execute)\s*\(\s*(?:['"].*?%s.*?['"]\s*%|f['"].*?\{.*?\}.*?['"]))/gi
-  ],
-
-  relatedInfo: {
-    url: "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
-    message: "Learn more about SQL Injection prevention",
-  },
-};
+export class SqlInjectionRule extends RegexRule {
+  constructor() {
+    super(
+      "sql-injection",
+      "Potential SQL Injection vulnerability - Use parameterized queries instead",
+      vscode.DiagnosticSeverity.Error,
+      [
+        /(?:(?:query|sql|execute|exec)\s*(?:=|\+=)\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`)|\.(?:query|execute|raw)\s*\(\s*(?:['"`].*?\$\{.*?\}.*?['"`]|.*?\+.*?\))|(?:cursor\.execute|execute)\s*\(\s*(?:['"].*?%s.*?['"]\s*%|f['"].*?\{.*?\}.*?['"]))/gi
+      ],
+      {
+        url: "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+        message: "Learn more about SQL Injection prevention",
+      }
+    );
+  }
+}
 
 /**
  * Code Action Provider for SQL Injection fixes
@@ -43,7 +40,6 @@ export class SqlInjectionCodeActionProvider
 
     const actions: vscode.CodeAction[] = [];
 
-    // Suggest parameterized query fix with examples
     const fixAction = new vscode.CodeAction(
       "💡 Convert to parameterized query",
       vscode.CodeActionKind.QuickFix
@@ -52,7 +48,6 @@ export class SqlInjectionCodeActionProvider
     fixAction.diagnostics = [diagnostic];
     fixAction.edit = new vscode.WorkspaceEdit();
 
-    // Provide language-specific examples
     let hintText = "\n// TODO: Convert to parameterized query\n";
 
     if (document.languageId === "python") {
@@ -71,19 +66,20 @@ export class SqlInjectionCodeActionProvider
 
     actions.push(fixAction);
 
-    // Add "Learn More" action
     const learnMoreAction = new vscode.CodeAction(
       "📚 Learn about SQL Injection prevention",
       vscode.CodeActionKind.QuickFix
     );
+
     learnMoreAction.command = {
       command: "guardex.openSecurityGuide",
       title: "Open Security Guide",
       arguments: [
-        sqlInjectionRule.relatedInfo?.url,
-        sqlInjectionRule.description,
+        "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+        "Potential SQL Injection vulnerability - Use parameterized queries instead",
       ],
     };
+
     actions.push(learnMoreAction);
 
     return actions;
