@@ -13,8 +13,9 @@ export const domXssRule = {
 
   // Regex to detect innerHTML/outerHTML assignments that are NOT wrapped in DOMPurify.sanitize()
   // OR document.cookie access (can be used to steal session data)
-  regex:
-    /(?:(?:\.(?:innerHTML|outerHTML|insertAdjacentHTML)\s*(?:\+?=)\s*(?!\s*(?:DOMPurify\.sanitize\(|['"`])))|document\.cookie\b)/g,
+  patterns:[
+    /(?:(?:\.(?:innerHTML|outerHTML|insertAdjacentHTML)\s*(?:\+?=)\s*(?!\s*(?:DOMPurify\.sanitize\(|['"`])))|document\.cookie\b)/g
+  ],
 
   relatedInfo: {
     url: "https://cheatsheetseries.owasp.org/cheatsheets/DOM_based_XSS_Prevention_Cheat_Sheet.html",

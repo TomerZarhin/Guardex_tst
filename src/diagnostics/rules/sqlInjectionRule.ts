@@ -11,8 +11,9 @@ export const sqlInjectionRule = {
   severity: vscode.DiagnosticSeverity.Error,
 
   // Combined regex to catch common SQL injection patterns
-  regex:
-    /(?:(?:query|sql|execute|exec)\s*(?:=|\+=)\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`)|\.(?:query|execute|raw)\s*\(\s*(?:['"`].*?\$\{.*?\}.*?['"`]|.*?\+.*?\))|(?:cursor\.execute|execute)\s*\(\s*(?:['"].*?%s.*?['"]\s*%|f['"].*?\{.*?\}.*?['"]))/gi,
+  patterns:[
+    /(?:(?:query|sql|execute|exec)\s*(?:=|\+=)\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`)|\.(?:query|execute|raw)\s*\(\s*(?:['"`].*?\$\{.*?\}.*?['"`]|.*?\+.*?\))|(?:cursor\.execute|execute)\s*\(\s*(?:['"].*?%s.*?['"]\s*%|f['"].*?\{.*?\}.*?['"]))/gi
+  ],
 
   relatedInfo: {
     url: "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",

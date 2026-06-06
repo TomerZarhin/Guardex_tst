@@ -14,7 +14,7 @@ export interface SecurityRule {
   severity: vscode.DiagnosticSeverity;
 
   /** Regex used to detect the pattern */
-  regex: RegExp;
+  patterns: RegExp[];
 
   /** Optional related information (extra context or documentation link) */
   relatedInfo?: {

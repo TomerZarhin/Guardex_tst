@@ -12,8 +12,9 @@ export const xssRule = {
   severity: vscode.DiagnosticSeverity.Warning, // Use Warning as it needs context validation
 
   // Regex to catch common XSS sinks being assigned a dynamic string (concatenated or template literal)
-  regex:
-    /(?:(?:\.innerHTML|\.outerHTML|\.insertAdjacentHTML|document\.write|\.html|document\.getElementById)\s*(?:=|\+=|\(|\))\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`|.*?\.html\s*\(.*?\+.*?\)|.*?\.html\s*\(\s*`.*?\$\{.*?\}`))/gi,
+  patterns:[
+    /(?:(?:\.innerHTML|\.outerHTML|\.insertAdjacentHTML|document\.write|\.html|document\.getElementById)\s*(?:=|\+=|\(|\))\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`|.*?\.html\s*\(.*?\+.*?\)|.*?\.html\s*\(\s*`.*?\$\{.*?\}`))/gi
+  ],
 
   relatedInfo: {
     url: "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
