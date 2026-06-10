@@ -6,7 +6,7 @@ export class DomXssRule extends RegexRule {
     super(
       "dom-xss",
       "Potential XSS vulnerability - Unsafe use of innerHTML, document.cookie, or data from untrusted sources",
-      vscode.DiagnosticSeverity.Error,
+      vscode.DiagnosticSeverity.Warning,
       [
         /(?:(?:\.(?:innerHTML|outerHTML|insertAdjacentHTML)\s*(?:\+?=)\s*(?!\s*(?:DOMPurify\.sanitize\(|['"`])))|document\.cookie\b)/g
       ],

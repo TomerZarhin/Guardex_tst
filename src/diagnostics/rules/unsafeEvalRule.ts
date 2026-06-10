@@ -6,7 +6,7 @@ export class UnsafeEvalRule extends RegexRule {
     super(
       'UNSAFE_EVAL',
       '⚠ Use of eval() detected — may allow arbitrary code execution.',
-      vscode.DiagnosticSeverity.Error,
+      vscode.DiagnosticSeverity.Warning,
       [
         /eval\s*\(/g
       ],

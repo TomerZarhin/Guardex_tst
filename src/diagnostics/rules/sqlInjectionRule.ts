@@ -6,7 +6,7 @@ export class SqlInjectionRule extends RegexRule {
     super(
       "sql-injection",
       "Potential SQL Injection vulnerability - Use parameterized queries instead",
-      vscode.DiagnosticSeverity.Error,
+      vscode.DiagnosticSeverity.Warning,
       [
         /(?:(?:query|sql|execute|exec)\s*(?:=|\+=)\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`)|\.(?:query|execute|raw)\s*\(\s*(?:['"`].*?\$\{.*?\}.*?['"`]|.*?\+.*?\))|(?:cursor\.execute|execute)\s*\(\s*(?:['"].*?%s.*?['"]\s*%|f['"].*?\{.*?\}.*?['"]))/gi
       ],
