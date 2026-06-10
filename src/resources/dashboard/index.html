@@ -18,20 +18,120 @@
     />
 
     <style>
+      :root {
+        --bg-primary: #121212;
+        --bg-secondary: #1e1e1e;
+        --bg-tertiary: #252525;
+        --text-primary: #e0e0e0;
+        --text-secondary: #a0a0a0;
+        --accent: #58a6ff;
+        --warning: #f0b429;
+        --warning-bg: rgba(240, 180, 41, 0.15);
+        --border: #333;
+        --shadow: rgba(0, 0, 0, 0.35);
+        --font-main: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      }
+
       body {
         margin: 0;
         padding: 20px;
-        font-family: Arial, sans-serif;
-        background: #121212;
-        color: #e0e0e0;
+        font-family: var(--font-main);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        min-height: 100vh;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
       }
 
       h1 {
         font-size: 28px;
-        margin-bottom: 20px;
-        color: #58a6ff;
+        margin: 0;
+        color: var(--warning);
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
 
+      h1 .icon {
+        font-size: 24px;
+      }
+
+      .stats-summary {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .stat-badge {
+        background: var(--warning-bg);
+        color: var(--warning);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        border: 1px solid var(--warning);
+      }
+
+      .last-updated {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      /* Search/Filter */
+      .search-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .search-input {
+        flex: 1;
+        min-width: 200px;
+        padding: 10px 15px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 14px;
+        font-family: var(--font-main);
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--warning);
+      }
+
+      .search-input::placeholder {
+        color: var(--text-secondary);
+      }
+
+      .filter-select {
+        padding: 10px 15px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-size: 14px;
+        font-family: var(--font-main);
+        cursor: pointer;
+      }
+
+      .filter-select:focus {
+        outline: none;
+        border-color: var(--warning);
+      }
+
+      /* Grid */
       .grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -39,23 +139,34 @@
         margin-bottom: 25px;
       }
 
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .card {
-        background: #1e1e1e;
+        background: var(--bg-secondary);
         padding: 18px;
         border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+        box-shadow: 0 2px 10px var(--shadow);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       .card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 4px 14px var(--shadow);
       }
 
       h2 {
         font-size: 18px;
-        color: #58a6ff;
+        color: var(--warning);
         margin-bottom: 10px;
+      }
+
+      /* Table */
+      .table-container {
+        overflow-x: auto;
       }
 
       table {
@@ -67,51 +178,189 @@
 
       th,
       td {
-        border-bottom: 1px solid #333;
-        padding: 8px;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 8px;
         text-align: left;
       }
 
       th {
-        color: #58a6ff;
-        font-weight: bold;
+        color: var(--warning);
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+
+      th:hover {
+        color: var(--accent);
+      }
+
+      th .sort-icon {
+        margin-left: 5px;
+        font-size: 10px;
+        opacity: 0.5;
+      }
+
+      th.sorted .sort-icon {
+        opacity: 1;
+      }
+
+      td {
+        font-family: var(--font-mono);
+        font-size: 13px;
+      }
+
+      td.rule-cell {
+        font-family: var(--font-main);
+      }
+
+      tr {
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      tr:hover {
+        background: var(--bg-tertiary);
+      }
+
+      /* Rule type badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        font-family: var(--font-main);
+      }
+
+      .badge-sql {
+        background: rgba(138, 43, 226, 0.2);
+        color: #8a2be2;
+      }
+
+      .badge-xss {
+        background: rgba(255, 140, 0, 0.2);
+        color: #ff8c00;
+      }
+
+      .badge-eval {
+        background: rgba(0, 191, 255, 0.2);
+        color: #00bfff;
+      }
+
+      .badge-password {
+        background: rgba(50, 205, 50, 0.2);
+        color: #32cd32;
+      }
+
+      .badge-dom-xss {
+        background: rgba(255, 99, 71, 0.2);
+        color: #ff6347;
+      }
+
+      .badge-default {
+        background: var(--warning-bg);
+        color: var(--warning);
       }
 
       /* Heatmap grid */
       .heatmap {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-        gap: 6px;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
       }
 
       .heatbox {
-        padding: 12px;
-        background: #222;
-        border-radius: 6px;
+        padding: 14px;
+        background: var(--bg-tertiary);
+        border-radius: 8px;
         text-align: center;
         font-size: 13px;
         color: white;
         transition: 0.2s;
+        cursor: pointer;
       }
 
       .heatbox:hover {
         transform: scale(1.06);
       }
+
+      .heatbox .file-name {
+        font-weight: 500;
+        margin-bottom: 4px;
+        word-break: break-all;
+      }
+
+      .heatbox .count {
+        font-size: 11px;
+        opacity: 0.8;
+      }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+      }
+
+      .empty-state .icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+
+      .empty-state h3 {
+        color: var(--text-primary);
+        margin-bottom: 10px;
+      }
+
+      .empty-state p {
+        font-size: 14px;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+
+      /* Chart containers */
+      .chart-container {
+        position: relative;
+        min-height: 250px;
+      }
+
+      .chart-container canvas {
+        max-height: 250px;
+      }
     </style>
   </head>
 
   <body>
-    <h1>Guardex — Security Dashboard</h1>
+    <div class="header">
+      <h1><span class="icon">🛡️</span> Guardex — Security Dashboard</h1>
+      <div class="stats-summary">
+        <span class="stat-badge" id="totalFindings">0 findings</span>
+        <span class="stat-badge" id="totalFiles">0 files</span>
+        <span class="last-updated" id="lastUpdated">Last updated: --</span>
+      </div>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search by file or rule..." />
+      <select class="filter-select" id="ruleFilter">
+        <option value="">All Rules</option>
+        <option value="sql-injection">SQL Injection</option>
+        <option value="cross-site-scripting">XSS</option>
+        <option value="dom-xss">DOM XSS</option>
+        <option value="UNSAFE_EVAL">Unsafe Eval</option>
+        <option value="HARDCODED_PASSWORD">Hardcoded Password</option>
+      </select>
+    </div>
 
     <div class="grid">
-      <div class="card">
-        <h2>Findings by Severity</h2>
-        <canvas id="severityPie"></canvas>
-      </div>
-
-      <div class="card">
-        <h2>Findings by File</h2>
-        <canvas id="fileBar"></canvas>
+      <div class="card" style="grid-column: 1 / -1;">
+        <h2>Findings by Rule Type</h2>
+        <div class="chart-container">
+          <canvas id="severityPie"></canvas>
+        </div>
       </div>
     </div>
 
@@ -122,16 +371,23 @@
 
     <div class="card">
       <h2>All Findings</h2>
-      <table id="findingsTable">
-        <thead>
-          <tr>
-            <th>Rule</th>
-            <th>File</th>
-            <th>Line</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="table-container">
+        <table id="findingsTable">
+          <thead>
+            <tr>
+              <th data-sort="ruleId">Rule <span class="sort-icon">↕</span></th>
+              <th data-sort="file">File <span class="sort-icon">↕</span></th>
+              <th data-sort="line">Line <span class="sort-icon">↕</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="icon">✅</div>
+        <h3>No Security Findings</h3>
+        <p>Great job! Your code looks clean. Keep scanning to stay secure.</p>
+      </div>
     </div>
 
     <!-- Scripts will be injected by extension.ts -->

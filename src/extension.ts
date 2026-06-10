@@ -51,6 +51,32 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions
       );
 
+      // Handle messages from the dashboard webview
+      currentPanel.webview.onDidReceiveMessage((message: any) => {
+        if (message.command === 'navigate' && message.finding) {
+          const finding = message.finding;
+          const uri = vscode.Uri.file(finding.file);
+          vscode.workspace.openTextDocument(uri).then((doc) => {
+            vscode.window.showTextDocument(doc).then((editor) => {
+              const position = new vscode.Position(
+                finding.range.start.line,
+                finding.range.start.character
+              );
+              const selection = new vscode.Selection(position, position);
+              editor.selection = selection;
+              editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+            });
+          });
+        }
+      });
+
+      // Refresh dashboard when it becomes visible again
+      currentPanel.onDidChangeViewState(() => {
+        if (currentPanel && currentPanel.visible) {
+          updateDashboard();
+        }
+      });
+
       const htmlPath = vscode.Uri.joinPath(
         context.extensionUri,
         "src",
