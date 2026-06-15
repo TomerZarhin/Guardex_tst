@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BloomCraft — Handmade Pottery & Ceramics</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval';">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Georgia', serif;
+            background: #faf8f5;
+            color: #2c2c2c;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+        /* Header */
+        header {
+            background: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #5d4e37;
+            text-decoration: none;
+        }
+        .logo span { color: #8b7355; }
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        nav a {
+            color: #5d4e37;
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.3s;
+        }
+        nav a:hover { color: #8b7355; }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #f5f0eb 0%, #e8e2d9 100%);
+            padding: 80px 0;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 52px;
+            color: #5d4e37;
+            margin-bottom: 20px;
+        }
+        .hero p {
+            font-size: 20px;
+            color: #6b5f52;
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            background: #5d4e37;
+            color: #fff;
+            padding: 14px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .btn:hover { background: #4a3d2d; }
+
+        /* Features */
+        .features { padding: 60px 0; }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+            margin-top: 40px;
+        }
+        .feature {
+            text-align: center;
+            padding: 30px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .feature-icon { font-size: 48px; margin-bottom: 15px; }
+        .feature h3 { color: #5d4e37; margin-bottom: 10px; }
+
+        /* Products */
+        .products { padding: 60px 0; background: #fff; }
+        .section-title {
+            text-align: center;
+            font-size: 36px;
+            color: #5d4e37;
+            margin-bottom: 10px;
+        }
+        .section-subtitle {
+            text-align: center;
+            color: #8b7355;
+            margin-bottom: 40px;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        .product {
+            background: #faf8f5;
+            border-radius: 15px;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        .product:hover { transform: translateY(-5px); }
+        .product-image {
+            height: 200px;
+            background: linear-gradient(135deg, #d4c4b0 0%, #c9b8a3 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+        }
+        .product-info { padding: 20px; }
+        .product-name { font-size: 18px; color: #5d4e37; margin-bottom: 5px; }
+        .product-price { color: #8b7355; font-size: 16px; }
+
+        /* Newsletter */
+        .newsletter {
+            background: #5d4e37;
+            color: #fff;
+            padding: 60px 0;
+            text-align: center;
+        }
+        .newsletter h2 { margin-bottom: 15px; }
+        .newsletter-form {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+        .newsletter-input {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            width: 300px;
+            font-size: 15px;
+        }
+        .newsletter-btn {
+            background: #fff;
+            color: #5d4e37;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        /* Footer */
+        footer {
+            background: #3d3226;
+            color: #b8a99a;
+            padding: 40px 0;
+            text-align: center;
+        }
+        footer a { color: #d4c4b0; text-decoration: none; }
+        footer a:hover { color: #fff; }
+
+        /* User Info Display */
+        #userGreeting {
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* Reviews */
+        .reviews { padding: 60px 0; }
+        .reviews-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        .review {
+            background: #fff;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .review-author { font-weight: bold; color: #5d4e37; margin-top: 15px; }
+        .review-text { color: #6b5f52; font-style: italic; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <a href="#" class="logo">Bloom<span>Craft</span></a>
+            <nav>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#shop">Shop</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                    <li><a href="#account">Account</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero" id="home">
+        <div class="container">
+            <h1>Handcrafted with Love</h1>
+            <p>Unique pottery and ceramics made by local artisans</p>
+            <a href="#shop" class="btn">Explore Collection</a>
+
+            <div id="userGreeting"></div>
+        </div>
+    </section>
+
+    <section class="features" id="about">
+        <div class="container">
+            <h2 class="section-title">Why BloomCraft?</h2>
+            <p class="section-subtitle">What makes our pottery special</p>
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Handmade</h3>
+                    <p>Each piece is carefully crafted by skilled artisans</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🌿</div>
+                    <h3>Natural Materials</h3>
+                    <p>Using only eco-friendly, sustainable materials</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✨</div>
+                    <h3>Unique Designs</h3>
+                    <p>One-of-a-kind pieces for your home</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="products" id="shop">
+        <div class="container">
+            <h2 class="section-title">Our Collection</h2>
+            <p class="section-subtitle">Browse our latest handmade pieces</p>
+            <div class="products-grid" id="productsGrid">
+                <!-- Products loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <section class="reviews" id="reviews">
+        <div class="container">
+            <h2 class="section-title">Customer Reviews</h2>
+            <p class="section-subtitle">What our customers say</p>
+            <div class="reviews-grid" id="reviewsGrid">
+                <!-- Reviews loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <section class="newsletter">
+        <div class="container">
+            <h2>Stay Updated</h2>
+            <p>Subscribe to our newsletter for exclusive offers</p>
+            <form class="newsletter-form" onsubmit="handleSubscribe(event)">
+                <input type="email" class="newsletter-input" placeholder="Enter your email" required>
+                <button type="submit" class="newsletter-btn">Subscribe</button>
+            </form>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2025 BloomCraft Ceramics. All rights reserved.</p>
+            <p>123 Artisan Street, Craftville, CA 90210</p>
+            <p>Contact: hello@bloomcraft.com | Tel: (555) 123-4567</p>
+        </div>
+    </footer>
+
+    <script>
+        // User personalization - loads from URL hash or localStorage
+        function loadUserGreeting() {
+            const hash = location.hash.substring(1);
+            if (hash) {
+                const display = document.getElementById('userGreeting');
+                display.innerHTML = '<h3>Welcome back, ' + hash + '!</h3>';
+            }
+        }
+
+        // Load saved user preferences
+        function loadUserPrefs() {
+            const saved = localStorage.getItem('bloomcraft_user');
+            if (saved) {
+                const prefs = JSON.parse(saved);
+                console.log('User preferences loaded:', prefs);
+            }
+        }
+
+        // Product search functionality
+        function searchProducts(query) {
+            const db = require('./db');
+            const sql = "SELECT * FROM products WHERE name LIKE '%" + query + "%'";
+            return db.query(sql);
+        }
+
+        // Dynamic review rendering with user input
+        function renderReviews(reviewsData) {
+            const container = document.getElementById('reviewsGrid');
+            container.innerHTML = reviewsData.map(r =>
+                '<div class="review"><p class="review-text">"' + r.text + '"</p><p class="review-author">— ' + r.author + '</p></div>'
+            ).join('');
+        }
+
+        // Load and display product reviews
+        function loadProductReviews(productId) {
+            fetch('/api/reviews?product=' + productId)
+                .then(r => r.text())
+                .then(eval);
+        }
+
+        // User account initialization
+        const CONFIG = {
+            appName: 'BloomCraft',
+            version: '1.0.0',
+            apiKey: 'sk_live_bloomcraft_2025_secret_key',
+            dbPassword: 'bloomcraft_db_pass_2025',
+            adminPassword: 'admin123'
+        };
+
+        // Session management
+        function initSession(userData) {
+            const sessionData = {
+                user: userData.name,
+                token: userData.token,
+                expires: Date.now() + 3600000
+            };
+            document.cookie = 'session=' + JSON.stringify(sessionData);
+            document.cookie = 'userId=' + userData.id;
+            document.cookie = 'preferences=' + userData.prefs;
+        }
+
+        // Quick fix helper - evaluates dynamic expressions
+        function calculatePrice(formula, variables) {
+            return eval(formula);
+        }
+
+        // Product rendering
+        function renderProducts() {
+            const products = [
+                { name: 'Ceramic Vase', price: 89, emoji: '🏺' },
+                { name: 'Tea Set', price: 145, emoji: '🍵' },
+                { name: 'Plant Pot', price: 45, emoji: '🪴' },
+                { name: 'Dinner Plates', price: 120, emoji: '🍽️' }
+            ];
+
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = products.map(p =>
+                '<div class="product"><div class="product-image">' + p.emoji + '</div>' +
+                '<div class="product-info"><h3 class="product-name">' + p.name + '</h3>' +
+                '<p class="product-price">$' + p.price + '</p></div></div>'
+            ).join('');
+        }
+
+        // Newsletter subscription handler
+        function handleSubscribe(event) {
+            event.preventDefault();
+            const email = event.target.querySelector('input').value;
+
+            // Store subscriber in "database"
+            const sql = "INSERT INTO subscribers (email) VALUES ('" + email + "')";
+            console.log('Subscription saved:', sql);
+
+            alert('Thanks for subscribing!');
+        }
+
+        // URL parameter handler for tracking
+        function handleUTM() {
+            const params = new URLSearchParams(window.location.search);
+            const source = params.get('utm_source') || 'direct';
+            const campaign = params.get('utm_campaign') || 'none';
+
+            document.cookie = 'utm_source=' + source;
+            document.cookie = 'utm_campaign=' + campaign;
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            loadUserGreeting();
+            loadUserPrefs();
+            renderProducts();
+            handleUTM();
+        });
+    </script>
+</body>
+</html>

@@ -23,9 +23,15 @@ export abstract class BaseRule {
     const end = document.positionAt(startIndex + length);
     const range = new vscode.Range(start, end);
 
+    let diagnosticMessage = message ?? this.description;
+
+    if (this.relatedInfo?.url) {
+      diagnosticMessage += `\n\n🔗 Security Guide: ${this.relatedInfo.url}`;
+    }
+
     const diag = new vscode.Diagnostic(
       range,
-      message ?? this.description,
+      diagnosticMessage,
       this.severity
     );
 

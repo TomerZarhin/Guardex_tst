@@ -8,12 +8,12 @@ export class SqlInjectionRule extends RegexRule {
       "Potential SQL Injection vulnerability - Use parameterized queries instead",
       vscode.DiagnosticSeverity.Warning,
       [
-        /(?:(?:query|sql|execute|exec)\s*(?:=|\+=)\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`)|\.(?:query|execute|raw)\s*\(\s*(?:['"`].*?\$\{.*?\}.*?['"`]|.*?\+.*?\))|(?:cursor\.execute|execute)\s*\(\s*(?:['"].*?%s.*?['"]\s*%|f['"].*?\{.*?\}.*?['"]))/gi
+        /(?:(?:query|sql|execute|exec)\w*\s*(?:=|\+=)\s*(?:['"`].*?\+.*?['"`]|`.*?\$\{.*?\}.*?`|\+\s*\w+)|\.(?:query|execute|raw)\s*\(\s*(?:['"`].*?\$\{.*?\}.*?['"`]|.*?\+.*?\))|(?:cursor\.execute|execute)\s*\(\s*(?:['"].*?%s.*?['"]\s*%|f['"].*?\{.*?\}.*?['"]))/gis,
       ],
       {
         url: "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
         message: "Learn more about SQL Injection prevention",
-      }
+      },
     );
   }
 }
@@ -30,7 +30,7 @@ export class SqlInjectionCodeActionProvider
 
   provideCodeActions(
     document: vscode.TextDocument,
-    range: vscode.Range
+    range: vscode.Range,
   ): vscode.CodeAction[] | undefined {
     const diagnostic = vscode.languages
       .getDiagnostics(document.uri)
@@ -42,7 +42,7 @@ export class SqlInjectionCodeActionProvider
 
     const fixAction = new vscode.CodeAction(
       "💡 Convert to parameterized query",
-      vscode.CodeActionKind.QuickFix
+      vscode.CodeActionKind.QuickFix,
     );
 
     fixAction.diagnostics = [diagnostic];
@@ -61,14 +61,14 @@ export class SqlInjectionCodeActionProvider
     fixAction.edit.insert(
       document.uri,
       new vscode.Position(range.start.line, 0),
-      hintText
+      hintText,
     );
 
     actions.push(fixAction);
 
     const learnMoreAction = new vscode.CodeAction(
       "📚 Learn about SQL Injection prevention",
-      vscode.CodeActionKind.QuickFix
+      vscode.CodeActionKind.QuickFix,
     );
 
     learnMoreAction.command = {

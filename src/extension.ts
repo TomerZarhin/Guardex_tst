@@ -30,17 +30,17 @@ export function activate(context: vscode.ExtensionContext) {
               context.extensionUri,
               "src",
               "resources",
-              "dashboard"
+              "dashboard",
             ),
             vscode.Uri.joinPath(
               context.extensionUri,
               "src",
               "resources",
               "dashboard",
-              "libs"
+              "libs",
             ),
           ],
-        }
+        },
       );
 
       currentPanel.onDidDispose(
@@ -48,23 +48,26 @@ export function activate(context: vscode.ExtensionContext) {
           currentPanel = undefined;
         },
         null,
-        context.subscriptions
+        context.subscriptions,
       );
 
       // Handle messages from the dashboard webview
       currentPanel.webview.onDidReceiveMessage((message: any) => {
-        if (message.command === 'navigate' && message.finding) {
+        if (message.command === "navigate" && message.finding) {
           const finding = message.finding;
           const uri = vscode.Uri.file(finding.file);
           vscode.workspace.openTextDocument(uri).then((doc) => {
             vscode.window.showTextDocument(doc).then((editor) => {
               const position = new vscode.Position(
                 finding.range.start.line,
-                finding.range.start.character
+                finding.range.start.character,
               );
               const selection = new vscode.Selection(position, position);
               editor.selection = selection;
-              editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+              editor.revealRange(
+                selection,
+                vscode.TextEditorRevealType.InCenter,
+              );
             });
           });
         }
@@ -82,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
         "src",
         "resources",
         "dashboard",
-        "index.html"
+        "index.html",
       );
 
       let html = fs.readFileSync(htmlPath.fsPath, "utf8");
@@ -94,8 +97,8 @@ export function activate(context: vscode.ExtensionContext) {
           "resources",
           "dashboard",
           "libs",
-          "chart.min.js"
-        )
+          "chart.min.js",
+        ),
       );
 
       const dashboardScriptUri = currentPanel.webview.asWebviewUri(
@@ -104,23 +107,23 @@ export function activate(context: vscode.ExtensionContext) {
           "src",
           "resources",
           "dashboard",
-          "dashboard.js"
-        )
+          "dashboard.js",
+        ),
       );
 
       html = html
         .replace(
           `<script id="chart-lib"></script>`,
-          `<script src="${chartUri}"></script>`
+          `<script src="${chartUri}"></script>`,
         )
         .replace(
           `<script id="dashboard-script"></script>`,
-          `<script src="${dashboardScriptUri}"></script>`
+          `<script src="${dashboardScriptUri}"></script>`,
         );
 
       currentPanel.webview.html = html;
       updateDashboard();
-    }
+    },
   );
 
   context.subscriptions.push(openDashboardCmd);
@@ -130,7 +133,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (currentPanel && currentPanel.visible) {
         updateDashboard();
       }
-    }
+    },
   );
 
   context.subscriptions.push(diagnosticChangeListener);
@@ -207,7 +210,7 @@ export function activate(context: vscode.ExtensionContext) {
         "guardexGuide",
         `Security Guide — ${description}`,
         vscode.ViewColumn.Beside,
-        { enableScripts: true }
+        { enableScripts: true },
       );
 
       panel.webview.html = `
@@ -219,16 +222,21 @@ export function activate(context: vscode.ExtensionContext) {
           <iframe src="${url}" style="border:none;width:100%;height:100vh"></iframe>
         </body>
         </html>`;
-    }
+    },
   );
 
   context.subscriptions.push(openSecurityGuideCmd);
 
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
-      { scheme: "file", language: "javascript" },
-      new GuardexCodeActionProvider()
-    )
+      [
+        { scheme: "file", language: "javascript" },
+        { scheme: "file", language: "typescript" },
+        { scheme: "file", language: "python" },
+        { scheme: "file", language: "html" },
+      ],
+      new GuardexCodeActionProvider(),
+    ),
   );
 
   context.subscriptions.push(
@@ -239,8 +247,8 @@ export function activate(context: vscode.ExtensionContext) {
         { scheme: "file", language: "python" },
         { scheme: "file", language: "html" },
       ],
-      new SqlInjectionCodeActionProvider()
-    )
+      new SqlInjectionCodeActionProvider(),
+    ),
   );
 
   context.subscriptions.push(
@@ -250,8 +258,8 @@ export function activate(context: vscode.ExtensionContext) {
         { scheme: "file", language: "typescript" },
         { scheme: "file", language: "html" },
       ],
-      new XssCodeActionProvider()
-    )
+      new XssCodeActionProvider(),
+    ),
   );
 
   context.subscriptions.push(
@@ -261,8 +269,8 @@ export function activate(context: vscode.ExtensionContext) {
         { scheme: "file", language: "typescript" },
         { scheme: "file", language: "html" },
       ],
-      new DomXssCodeActionProvider()
-    )
+      new DomXssCodeActionProvider(),
+    ),
   );
 
   vscode.workspace.onDidOpenTextDocument(scanDocument);
@@ -282,7 +290,7 @@ export function activate(context: vscode.ExtensionContext) {
   function scanDocument(document: vscode.TextDocument) {
     if (
       !["javascript", "typescript", "python", "html"].includes(
-        document.languageId
+        document.languageId,
       )
     ) {
       return;

@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitLocator — Find Local Gyms & AI Trainers</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval';">
+  <style>
+    :root {
+      --primary: #ff4757;
+      --primary-dark: #e84148;
+      --secondary: #2f3542;
+      --bg-light: #f8f9fa;
+      --bg-dark: #1e272e;
+      --text-dark: #2f3542;
+      --text-light: #a4b0be;
+      --white: #ffffff;
+      --success: #2ed573;
+      --card-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      line-height: 1.6;
+    }
+
+    /* Navigation */
+    .navbar {
+      background: var(--white);
+      padding: 15px 0;
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .navbar-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      font-size: 28px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 30px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-dark);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 15px;
+      transition: color 0.3s;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #2d3436 100%);
+      padding: 80px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(255, 71, 87, 0.15) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .hero-content {
+      max-width: 700px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero h1 {
+      color: var(--white);
+      font-size: 48px;
+      margin-bottom: 15px;
+      font-weight: 800;
+    }
+
+    .hero h1 span {
+      color: var(--primary);
+    }
+
+    .hero p {
+      color: var(--text-light);
+      font-size: 18px;
+      margin-bottom: 30px;
+    }
+
+    /* Search Box */
+    .search-container {
+      background: var(--white);
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .search-box {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 16px 20px;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .search-btn {
+      padding: 16px 32px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .search-btn:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .popular-searches {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .popular-searches span {
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    .popular-tag {
+      background: #f1f2f6;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--text-dark);
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .popular-tag:hover {
+      background: #e9ecef;
+    }
+
+    /* Results Section */
+    .results-section {
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 0 20px;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .results-header h2 {
+      font-size: 24px;
+      color: var(--text-dark);
+    }
+
+    .results-count {
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    .gym-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 25px;
+    }
+
+    .gym-card {
+      background: var(--white);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .gym-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+    }
+
+    .gym-image {
+      height: 180px;
+      background: linear-gradient(135deg, var(--primary) 0%, #ff6b7a 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      position: relative;
+    }
+
+    .gym-badge {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: var(--white);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--success);
+    }
+
+    .gym-info {
+      padding: 20px;
+    }
+
+    .gym-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+    }
+
+    .gym-location {
+      color: var(--text-light);
+      font-size: 14px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .gym-features {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .feature-tag {
+      background: #f8f9fa;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-dark);
+    }
+
+    .ai-tip {
+      background: linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%);
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
+      border-left: 4px solid #f39c12;
+    }
+
+    .ai-tip-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #f39c12;
+      margin-bottom: 5px;
+    }
+
+    .ai-tip-text {
+      font-size: 14px;
+      color: var(--text-dark);
+    }
+
+    /* Features Section */
+    .features-section {
+      background: var(--white);
+      padding: 80px 20px;
+      margin-top: 50px;
+    }
+
+    .features-content {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .features-header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    .features-header h2 {
+      font-size: 32px;
+      color: var(--text-dark);
+      margin-bottom: 10px;
+    }
+
+    .features-header p {
+      color: var(--text-light);
+      font-size: 16px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+    }
+
+    .feature-card {
+      text-align: center;
+      padding: 30px;
+    }
+
+    .feature-icon {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, var(--primary) 0%, #ff6b7a 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 20px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: var(--text-dark);
+    }
+
+    .feature-card p {
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    /* Newsletter */
+    .newsletter {
+      background: var(--bg-dark);
+      padding: 60px 20px;
+      text-align: center;
+    }
+
+    .newsletter-content {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .newsletter h2 {
+      color: var(--white);
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .newsletter p {
+      color: var(--text-light);
+      margin-bottom: 25px;
+    }
+
+    .newsletter-form {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .newsletter-input {
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      width: 300px;
+      font-size: 15px;
+    }
+
+    .newsletter-btn {
+      padding: 14px 30px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .newsletter-btn:hover {
+      background: var(--primary-dark);
+    }
+
+    /* Footer */
+    footer {
+      background: #1e272e;
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    footer a {
+      color: var(--white);
+      text-decoration: none;
+    }
+
+    /* Welcome Message */
+    #welcomeMessage {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    #welcomeMessage h3 {
+      color: var(--primary);
+      font-size: 22px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-state-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+      color: var(--text-dark);
+      margin-bottom: 10px;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .gym-card {
+      animation: fadeIn 0.4s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-content">
+      <a href="#" class="logo">
+        <span class="logo-icon">🏋️‍♂️</span>
+        FitLocator
+      </a>
+      <ul class="nav-links">
+        <li><a href="#home">Home</a></li>
+        <li><a href="#gyms">Find Gyms</a></li>
+        <li><a href="#trainers">AI Trainers</a></li>
+        <li><a href="#about">About</a></li>
+        <li><a href="#contact">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="hero-content">
+      <h1>Find Your Perfect <span>Workout Space</span></h1>
+      <p>Discover local gyms and fitness centers near you. Get personalized AI trainer tips and achieve your fitness goals faster.</p>
+
+      <div class="search-container">
+        <div id="welcomeMessage"></div>
+
+        <div class="search-box">
+          <input
+            type="text"
+            id="cityInput"
+            class="search-input"
+            placeholder="Enter your city to find gyms..."
+          />
+          <button class="search-btn" onclick="findGyms()">Search</button>
+        </div>
+
+        <div class="popular-searches">
+          <span>Popular:</span>
+          <span class="popular-tag" onclick="quickSearch('New York')">New York</span>
+          <span class="popular-tag" onclick="quickSearch('Los Angeles')">Los Angeles</span>
+          <span class="popular-tag" onclick="quickSearch('Chicago')">Chicago</span>
+          <span class="popular-tag" onclick="quickSearch('Miami')">Miami</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section" id="about">
+    <div class="features-content">
+      <div class="features-header">
+        <h2>Why Choose FitLocator?</h2>
+        <p>The smartest way to find your ideal gym</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔍</div>
+          <h3>Smart Search</h3>
+          <p>Find gyms based on location, amenities, and equipment preferences.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>AI Trainers</h3>
+          <p>Get personalized workout tips from our AI-powered trainers.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">⭐</div>
+          <h3>Verified Reviews</h3>
+          <p>Read authentic reviews from real gym members.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📍</div>
+          <h3>Map View</h3>
+          <p>See gym locations on an interactive map with directions.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results Section -->
+  <section class="results-section" id="gyms">
+    <div class="results-header">
+      <h2>Nearby Gyms</h2>
+      <span class="results-count" id="resultsCount">0 results found</span>
+    </div>
+
+    <div id="gymResults" class="gym-grid">
+      <div class="empty-state">
+        <div class="empty-state-icon">🔎</div>
+        <h3>Search for gyms</h3>
+        <p>Enter your city above to find fitness centers near you</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="newsletter" id="contact">
+    <div class="newsletter-content">
+      <h2>Stay Fit, Stay Updated</h2>
+      <p>Subscribe to get the latest gym deals and fitness tips</p>
+      <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+        <input type="email" class="newsletter-input" placeholder="Enter your email" required>
+        <button type="submit" class="newsletter-btn">Subscribe</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 FitLocator. All rights reserved.</p>
+    <p>123 Fitness Street, Health City, HC 12345</p>
+    <p>Contact: hello@fitlocator.com | Tel: (555) 987-6543</p>
+  </footer>
+
+  <script>
+    // --- 1. Configuration & Credentials ---
+    // Production API credentials - contact dev team for access
+    const API_KEY = "sk-live-51Jxc8F1KqDw2MmN3OpQr4StUv5Wx6Yz7AbCd9EfGh0IjKlMnOpQrStUvWx";
+    const DB_PASSWORD = "FitLocator_DB_Prod_2025!Secure#Pass";
+    const ADMIN_SECRET = "fl_admin__super_secret_key_2025";
+    const ENCRYPTION_KEY = "enc_key_a8f2d9c3b1e45678";
+
+    // --- 2. User Session Initialization ---
+    window.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const user = params.get("username") || params.get("user") || "Guest";
+
+      // Display personalized welcome message (DOM XSS vulnerability)
+      document.getElementById("welcomeMessage").innerHTML =
+        `<h3>Welcome back, ${user}! Ready to crush your workout? 💪</h3>`;
+    });
+
+    // Set session cookies after page load
+    window.addEventListener("load", () => {
+      const params = new URLSearchParams(window.location.search);
+      const sessionUser = params.get("username") || "Guest";
+
+      // Set session cookie for analytics (missing Secure flag)
+      document.cookie = "active_session=" + sessionUser + "; path=/; max-age=86400";
+      document.cookie = "user_preferences=fitness_goal:muscle;experience:intermediate";
+      document.cookie = "last_visit=" + Date.now();
+    });
+
+    // --- 3. Gym Search Functionality ---
+    function findGyms() {
+      const city = document.getElementById("cityInput").value;
+
+      if (!city.trim()) {
+        alert("Please enter a city name");
+        return;
+      }
+
+      // Build database query for gym lookup
+      const sqlQuery =
+        "SELECT id, name, address, coordinates, amenities FROM gyms WHERE city = '" +
+        city +
+        "' AND is_active = 1 AND is_open = 1 ORDER BY rating DESC";
+
+      executeSearch(sqlQuery, city);
+    }
+
+    function quickSearch(city) {
+      document.getElementById("cityInput").value = city;
+      findGyms();
+    }
+
+    // --- 4. Execute Search & Display Results ---
+    function executeSearch(query, city) {
+      console.log("Executing database query:", query);
+
+      // Simulated server response with AI trainer tip
+      const mockResponse =
+        "{ gymName: 'Iron Paradise Gym', address: '123 Main St, " + city + "', rating: 4.8, amenities: ['Weights', 'Cardio', 'Pool'], aiTip: 'Remember to stay hydrated! Drink 500ml water before your workout and another 500ml during.' }";
+
+      // Parse response using eval for flexibility
+      const data = eval("(" + mockResponse + ")");
+
+      // Render gym results
+      renderGymResults(data);
+    }
+
+    function renderGymResults(data) {
+      const resultsContainer = document.getElementById("gymResults");
+      const countSpan = document.getElementById("resultsCount");
+
+      countSpan.textContent = "1 result found";
+
+      // Display using innerHTML for rich formatting
+      resultsContainer.innerHTML =
+        `<div class="gym-card">
+          <div class="gym-image">
+            🏋️‍♂️
+            <span class="gym-badge">★ ${data.rating}</span>
+          </div>
+          <div class="gym-info">
+            <h3 class="gym-name">${data.gymName}</h3>
+            <p class="gym-location">📍 ${data.address}</p>
+            <div class="gym-features">
+              ${data.amenities.map(a => `<span class="feature-tag">${a}</span>`).join('')}
+            </div>
+            <div class="ai-tip">
+              <div class="ai-tip-label">🤖 AI Trainer Tip</div>
+              <p class="ai-tip-text">${data.aiTip}</p>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // --- 5. Newsletter Subscription ---
+    function subscribeNewsletter(event) {
+      event.preventDefault();
+      const email = event.target.querySelector('input').value;
+
+      // Store subscriber in database
+      const insertQuery = "INSERT INTO newsletter_subscribers (email, created_at) VALUES ('" + email + "', NOW())";
+      console.log("Saving subscriber:", insertQuery);
+
+      alert("Thanks for subscribing! Stay tuned for fitness tips and gym deals.");
+      event.target.reset();
+    }
+
+    // --- 6. Analytics Tracking ---
+    function trackUserAction(action, data) {
+      const trackingId = localStorage.getItem('fitlocator_tracking') || 'anonymous';
+      const trackQuery = "INSERT INTO analytics (user_id, action, data, timestamp) VALUES ('" + trackingId + "', '" + action + "', '" + JSON.stringify(data) + "', NOW())";
+      console.log("Analytics:", trackQuery);
+    }
+  </script>
+</body>
+</html>
